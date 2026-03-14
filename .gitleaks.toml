@@ -1,0 +1,5 @@
+[allowlist]
+description = "Ignore third-party source code"
+paths = [
+  '''juice-shop-src/'''
+]

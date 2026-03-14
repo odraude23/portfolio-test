@@ -1,0 +1,12 @@
+services:
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: juice-shop
+    ports:
+      - "3000:3000"
+    # Healthcheck to ensure Juice Shop is ready
+    healthcheck:
+      test: [ "CMD", "/nodejs/bin/node", "-e", "fetch('http://localhost:3000/').then(r => process.exit(r.status === 200 ? 0 : 1))" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
