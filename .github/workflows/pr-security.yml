@@ -12,39 +12,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Scan Juice Shop dependencies (package-lock.json, yarn.lock, etc.)
+      # Scan Juice Shop dependencies (package-lock.json) — fails job if HIGH/CRITICAL found
       - name: Trivy — filesystem scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: juice-shop-src
           severity: HIGH,CRITICAL
-          format: sarif
-          output: trivy-fs.sarif
+          format: table
+          exit-code: '1'
 
-      # Scan the Juice Shop Docker image for OS-level CVEs
+      # Scan the Juice Shop Docker image — fails job if HIGH/CRITICAL found
       - name: Trivy — image scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
           image-ref: bkimminich/juice-shop:latest
           severity: HIGH,CRITICAL
-          format: sarif
-          output: trivy-image.sarif
-
-      - name: Upload filesystem results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-fs.sarif
-          category: trivy-fs
-
-      - name: Upload image results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-image.sarif
-          category: trivy-image
+          format: table
+          exit-code: '1'
 
   sonarcloud:
     name: SonarCloud — Code Quality & Security Hotspots
