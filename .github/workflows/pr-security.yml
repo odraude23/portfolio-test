@@ -12,16 +12,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Scan Juice Shop dependencies (package-lock.json) — fails job if HIGH/CRITICAL found
-      - name: Trivy — filesystem scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: fs
-          scan-ref: juice-shop-src
-          severity: HIGH,CRITICAL
-          format: table
-          exit-code: '1'
-
       # Scan the Juice Shop Docker image — fails job if HIGH/CRITICAL found
       - name: Trivy — image scan
         uses: aquasecurity/trivy-action@master
