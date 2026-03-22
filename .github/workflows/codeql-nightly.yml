@@ -1,0 +1,35 @@
+name: CodeQL — Nightly Deep Analysis
+
+on:
+  schedule:
+    - cron: '0 2 * * 1-5'  # 2am every weekday
+  workflow_dispatch:        # allow manual trigger
+
+jobs:
+  analyze:
+    name: CodeQL — Deep Semantic Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write  # required to upload results to GitHub Security
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          source-root: juice-shop-src
+
+      - name: Install dependencies
+        run: |
+          cd juice-shop-src
+          npm install --ignore-scripts 2>/dev/null || true
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: codeql-nightly
