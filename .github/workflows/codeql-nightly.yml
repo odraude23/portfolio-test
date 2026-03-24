@@ -1,8 +1,8 @@
 name: CodeQL — Nightly Deep Analysis
 
 on:
-  schedule:
-    - cron: '0 2 * * 1-5'  # 2am every weekday
+  #schedule:
+  #  - cron: '0 2 * * 1-5'  # 2am every weekday
   workflow_dispatch:        # allow manual trigger
 
 jobs:
