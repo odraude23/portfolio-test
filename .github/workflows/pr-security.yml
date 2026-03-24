@@ -1,0 +1,46 @@
+name: PR Security Scan
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  trivy:
+    name: Trivy — Dependency & Container Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Scan the Juice Shop Docker image — fails job if HIGH/CRITICAL found
+      - name: Trivy — image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          image-ref: bkimminich/juice-shop:latest
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: '1'
+
+  sonarcloud:
+    name: SonarCloud — Code Quality & Security Hotspots
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarCloud scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          projectBaseDir: juice-shop-src
+          args: >
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.sources=.
+            -Dsonar.exclusions=node_modules/**,dist/**,build/**
