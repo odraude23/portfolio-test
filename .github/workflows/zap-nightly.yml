@@ -27,6 +27,13 @@ jobs:
             sleep 5
           done
 
+      # Download OpenAPI spec from Juice Shop and save it for ZAP to read as a local file
+      - name: Download OpenAPI spec
+        run: |
+          curl -s http://localhost:3000/api-docs > ${{ github.workspace }}/zap/api-docs.json
+          echo "OpenAPI spec downloaded:"
+          head -5 ${{ github.workspace }}/zap/api-docs.json
+
       # Allow ZAP container to write to the mounted directory
       - name: Fix ZAP directory permissions
         run: chmod 777 ${{ github.workspace }}/zap

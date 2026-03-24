@@ -29,10 +29,11 @@ env:
         password: "admin123"
 
 jobs:
-# Step 1: Import all API endpoints directly from the OpenAPI spec
+# Step 1: Import all API endpoints from locally downloaded OpenAPI spec
 - type: openapi
   parameters:
-    apiUrl: "http://localhost:3000/api-docs"
+    apiFile: "/zap/wrk/api-docs.json"
+    targetUrl: "http://localhost:3000"
     context: "juice-shop"
 
 # Step 2: Traditional spider for non-API pages (runs authenticated)
