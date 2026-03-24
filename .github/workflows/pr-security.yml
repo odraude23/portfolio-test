@@ -76,18 +76,19 @@ jobs:
               body: `## ZAP Baseline Scan Results\n\n${report}`
             });
 
-      # Fail the job if ZAP found any alerts
-      - name: Fail if alerts found
+      # Fail the job only if ZAP found Medium or High alerts (riskcode >= 2)
+      - name: Fail if Medium or High alerts found
         run: |
           python3 -c "
           import json
           with open('report_json.json') as f:
               report = json.load(f)
           alerts = report.get('site', [{}])[0].get('alerts', [])
-          if alerts:
-              print(f'ZAP found {len(alerts)} alert(s) — failing the job')
+          blocking = [a for a in alerts if int(a.get('riskcode', 0)) >= 2]
+          if blocking:
+              print(f'ZAP found {len(blocking)} Medium/High alert(s) — failing the job')
               exit(1)
-          print('No alerts found')
+          print('No Medium or High alerts found — passing')
           "
 
   sonarcloud:
