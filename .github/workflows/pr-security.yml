@@ -25,6 +25,9 @@ jobs:
   zap-baseline:
     name: ZAP — Baseline DAST Scan
     runs-on: ubuntu-latest
+    permissions:
+      issues: write         # needed to post PR comment with findings
+      pull-requests: write  # needed to post PR comment
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
