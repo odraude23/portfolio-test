@@ -22,6 +22,75 @@ jobs:
           format: table
           exit-code: '1'
 
+  zap-baseline:
+    name: ZAP — Baseline DAST Scan
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # needed to post PR comment
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start Juice Shop
+        run: docker run -d --name juice-shop -p 3000:3000 bkimminich/juice-shop:latest
+
+      - name: Wait for Juice Shop to be ready
+        run: |
+          for i in {1..30}; do
+            curl -s http://localhost:3000 > /dev/null && echo "Juice Shop is ready" && break
+            echo "Waiting... ($i/30)"
+            sleep 5
+          done
+
+      # Unauthenticated passive scan — no token so it doesn't create a GitHub Issue
+      # fail_action: false so we control failure ourselves after posting the comment
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'http://localhost:3000'
+          fail_action: false
+        continue-on-error: true
+
+      # Upload HTML report as artifact
+      - name: Upload ZAP report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-baseline-report-pr-${{ github.event.pull_request.number }}
+          path: report_html.html
+          retention-days: 7
+
+      # Post the markdown report as a PR comment
+      - name: Post ZAP results as PR comment
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('report_md.md', 'utf8');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ZAP Baseline Scan Results\n\n${report}`
+            });
+
+      # Fail the job only if ZAP found Medium or High alerts (riskcode >= 2)
+      - name: Fail if Medium or High alerts found
+        run: |
+          python3 -c "
+          import json
+          with open('report_json.json') as f:
+              report = json.load(f)
+          alerts = report.get('site', [{}])[0].get('alerts', [])
+          blocking = [a for a in alerts if int(a.get('riskcode', 0)) >= 2]
+          if blocking:
+              print(f'ZAP found {len(blocking)} Medium/High alert(s) — failing the job')
+              exit(1)
+          print('No Medium or High alerts found — passing')
+          "
+
   sonarcloud:
     name: SonarCloud — Code Quality & Security Hotspots
     runs-on: ubuntu-latest

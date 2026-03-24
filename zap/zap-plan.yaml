@@ -1,0 +1,57 @@
+env:
+  contexts:
+  - name: "juice-shop"
+    urls:
+    - "http://localhost:3000"
+    includePaths: []
+    # Tell ZAP to NEVER scan or click on the logout path to avoid losing the session
+    excludePaths:
+    - "http://localhost:3000/rest/user/logout"
+
+    # Define Authentication Strategy (Juice Shop uses JSON authentication)
+    authentication:
+      method: "json"
+      parameters:
+        loginPageUrl: "http://localhost:3000/#/login"
+        loginRequestUri: "http://localhost:3000/rest/user/login"
+        loginRequestBody: '{"email":"{%username%}","password":"{%password%}"}'
+      # How ZAP verifies if the login was successful by looking at the response body
+      verification:
+        method: "response"
+        loggedOutRegex: "401 Unauthorized"
+        loggedInRegex: ".*token.*"
+
+    # Define the Users
+    users:
+    - name: "admin-user"
+      credentials:
+        username: "admin@juice-sh.op"
+        password: "admin123"
+
+jobs:
+# Step 1: Discover pages in the application (Spider)
+- type: spider
+  parameters:
+    context: "juice-shop"
+    user: "admin-user"
+    url: "http://localhost:3000"
+    maxDuration: 2
+
+# Step 2: Actively attack the discovered pages (Active Scan)
+- type: activeScan
+  parameters:
+    context: "juice-shop"
+    user: "admin-user"
+    maxRuleDurationInMins: 5
+    maxScanDurationInMins: 60
+  policyDefinition:
+    defaultStrength: High
+    defaultThreshold: Medium
+
+# Step 3: Generate HTML report
+- type: report
+  parameters:
+    template: traditional-html
+    reportDir: /zap/wrk
+    reportFile: zap-report.html
+    reportTitle: "ZAP Nightly Full Scan Report"
