@@ -1,0 +1,58 @@
+name: ZAP — Nightly Full DAST Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * 1-5'  # 2am every weekday
+  workflow_dispatch:        # allow manual trigger
+
+jobs:
+  zap-full:
+    name: ZAP — Full Authenticated DAST Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to commit report to repo
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start Juice Shop
+        run: docker run -d --name juice-shop -p 3000:3000 bkimminich/juice-shop:latest
+
+      - name: Wait for Juice Shop to be ready
+        run: |
+          for i in {1..30}; do
+            curl -s http://localhost:3000 > /dev/null && echo "Juice Shop is ready" && break
+            echo "Waiting... ($i/30)"
+            sleep 5
+          done
+
+      # Run ZAP using the automation plan (authenticated, full active scan)
+      - name: ZAP Full Scan
+        run: |
+          docker run --rm \
+            --network host \
+            -v ${{ github.workspace }}/zap:/zap/wrk \
+            zaproxy/zap-stable \
+            zap.sh -cmd -autorun /zap/wrk/zap-plan.yaml
+
+      # Upload HTML report as artifact (30-day retention)
+      - name: Upload ZAP report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-full-scan-${{ github.run_number }}
+          path: zap/zap-report.html
+          retention-days: 30
+
+      # Commit HTML report to reports/dast/ folder in the repo
+      - name: Commit ZAP report to repo
+        if: always()
+        run: |
+          mkdir -p reports/dast
+          cp zap/zap-report.html reports/dast/zap-report-$(date +'%Y-%m-%d').html
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/dast/
+          git commit -m "chore: add ZAP nightly report $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git push
