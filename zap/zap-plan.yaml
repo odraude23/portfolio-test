@@ -35,7 +35,7 @@ jobs:
     context: "juice-shop"
     user: "admin-user"
     url: "http://localhost:3000"
-    maxDuration: 2
+    maxDuration: 10
     browserId: firefox-headless
 
 # Step 2: Actively attack all discovered endpoints
@@ -43,8 +43,7 @@ jobs:
   parameters:
     context: "juice-shop"
     user: "admin-user"
-    maxRuleDurationInMins: 1
-    maxScanDurationInMins: 2
+    maxScanDurationInMins: 60
   policyDefinition:
     defaultStrength: High
     defaultThreshold: Low
