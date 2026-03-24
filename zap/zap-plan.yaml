@@ -29,22 +29,16 @@ env:
         password: "admin123"
 
 jobs:
-# Step 1: Import all API endpoints from locally downloaded OpenAPI spec
-- type: openapi
-  parameters:
-    apiFile: "/zap/wrk/api-docs.json"
-    targetUrl: "http://localhost:3000"
-    context: "juice-shop"
-
-# Step 2: Traditional spider for non-API pages (runs authenticated)
-- type: spider
+# Step 1: AJAX spider — launches a real browser to crawl the Angular SPA
+- type: spiderAjax
   parameters:
     context: "juice-shop"
     user: "admin-user"
     url: "http://localhost:3000"
     maxDuration: 2
+    browserId: firefox-headless
 
-# Step 3: Actively attack all discovered endpoints
+# Step 2: Actively attack all discovered endpoints
 - type: activeScan
   parameters:
     context: "juice-shop"
