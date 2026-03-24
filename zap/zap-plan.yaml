@@ -29,7 +29,13 @@ env:
         password: "admin123"
 
 jobs:
-# Step 1: Discover pages in the application (Spider)
+# Step 1: Import all API endpoints directly from the OpenAPI spec
+- type: openapi
+  parameters:
+    apiUrl: "http://localhost:3000/api-docs"
+    context: "juice-shop"
+
+# Step 2: Traditional spider for non-API pages (runs authenticated)
 - type: spider
   parameters:
     context: "juice-shop"
@@ -37,18 +43,18 @@ jobs:
     url: "http://localhost:3000"
     maxDuration: 2
 
-# Step 2: Actively attack the discovered pages (Active Scan)
+# Step 3: Actively attack all discovered endpoints
 - type: activeScan
   parameters:
     context: "juice-shop"
     user: "admin-user"
-    maxRuleDurationInMins: 5
-    maxScanDurationInMins: 60
+    maxRuleDurationInMins: 1
+    maxScanDurationInMins: 2
   policyDefinition:
     defaultStrength: High
-    defaultThreshold: Medium
+    defaultThreshold: Low
 
-# Step 3: Generate HTML report
+# Step 4: Generate HTML report
 - type: report
   parameters:
     template: traditional-html
