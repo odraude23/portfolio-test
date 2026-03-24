@@ -27,6 +27,10 @@ jobs:
             sleep 5
           done
 
+      # Allow ZAP container to write to the mounted directory
+      - name: Fix ZAP directory permissions
+        run: chmod 777 ${{ github.workspace }}/zap
+
       # Run ZAP using the automation plan (authenticated, full active scan)
       - name: ZAP Full Scan
         run: |
