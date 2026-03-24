@@ -26,8 +26,8 @@ jobs:
     name: ZAP — Baseline DAST Scan
     runs-on: ubuntu-latest
     permissions:
-      issues: write         # needed to post PR comment with findings
       pull-requests: write  # needed to post PR comment
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,15 +43,52 @@ jobs:
             sleep 5
           done
 
-      # Unauthenticated passive scan — checks misconfigurations and missing headers
-      # Posts results as a PR comment, fails job if any MEDIUM or higher alerts found
+      # Unauthenticated passive scan — no token so it doesn't create a GitHub Issue
+      # fail_action: false so we control failure ourselves after posting the comment
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.14.0
         with:
           target: 'http://localhost:3000'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fail_action: true
-          issue_title: 'ZAP Baseline Scan — PR #${{ github.event.pull_request.number }}'
+          fail_action: false
+        continue-on-error: true
+
+      # Upload HTML report as artifact
+      - name: Upload ZAP report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-baseline-report-pr-${{ github.event.pull_request.number }}
+          path: report_html.html
+          retention-days: 7
+
+      # Post the markdown report as a PR comment
+      - name: Post ZAP results as PR comment
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('report_md.md', 'utf8');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ZAP Baseline Scan Results\n\n${report}`
+            });
+
+      # Fail the job if ZAP found any alerts
+      - name: Fail if alerts found
+        run: |
+          python3 -c "
+          import json
+          with open('report_json.json') as f:
+              report = json.load(f)
+          alerts = report.get('site', [{}])[0].get('alerts', [])
+          if alerts:
+              print(f'ZAP found {len(alerts)} alert(s) — failing the job')
+              exit(1)
+          print('No alerts found')
+          "
 
   sonarcloud:
     name: SonarCloud — Code Quality & Security Hotspots
